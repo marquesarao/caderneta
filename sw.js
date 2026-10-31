@@ -1,7 +1,7 @@
 /* Caderneta — service worker.
  * Arquivos do app: rede primeiro (atualização chega sozinha), cache quando offline.
  * Fontes do Google: cache primeiro. Chamadas ao Apps Script nunca passam pelo cache. */
-const VERSAO = "caderneta-v3";
+const VERSAO = "caderneta-v4";
 const ARQUIVOS = ["./", "index.html", "styles.css", "core.js", "app.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png"];
 
@@ -28,7 +28,8 @@ self.addEventListener("fetch", (e) => {
   }
   if (url.origin !== self.location.origin) return;
 
-  e.respondWith(fetch(req).then((res) => {
+  // no-cache: sempre confere com o GitHub (que guarda cópia por até 10 min), sem esperar o cache do navegador.
+  e.respondWith(fetch(req, { cache: "no-cache" }).then((res) => {
     if (res.ok) { const copia = res.clone(); caches.open(VERSAO).then((c) => c.put(req, copia)); }
     return res;
   }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match("index.html"))));
