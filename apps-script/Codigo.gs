@@ -20,8 +20,9 @@ const COLS_LANC = ['id', 'data', 'mes', 'valor', 'categoria', 'pagamento', 'desc
 const FMT_LANC = ['@', '@', '@', '#,##0.00', '@', '@', '@', '@',
   '0', '0', '@', '@', '@', '0', '0'];
 
-const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm'];
-const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0'];
+// 'meta' fica no fim para não deslocar as colunas que já existem na planilha.
+const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm', 'meta'];
+const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0', '#,##0.00'];
 
 const RE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 const RE_ID = /^[A-Za-z0-9_-]{4,64}$/;
@@ -38,6 +39,7 @@ function setup() {
     chave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
     props.setProperty('CHAVE', chave);
   }
+  Logger.log('Abas prontas (versão 2, com metas).');
   Logger.log('CHAVE DA CASA (guarde, vai nos dois celulares): ' + chave);
 }
 
@@ -52,7 +54,7 @@ function prepararAba_(ss, nome, cols) {
 // ---------------------------------------------------------------- web app
 
 function doGet() {
-  return json_({ ok: true, app: 'caderneta', versao: 1 });
+  return json_({ ok: true, app: 'caderneta', versao: 2 });
 }
 
 function doPost(e) {
@@ -150,7 +152,7 @@ function ler_(sh, cols, desde) {
       const o = {};
       cols.forEach(function (c, i) { o[c] = v[i]; });
       o.excluido = Number(o.excluido) === 1;
-      ['parcela', 'parcelas', 'hue', 'ordem'].forEach(function (c) {
+      ['parcela', 'parcelas', 'hue', 'ordem', 'meta'].forEach(function (c) {
         if (c in o) o[c] = o[c] === '' ? null : Number(o[c]);
       });
       if ('valor' in o) o.valor = Number(o.valor);
@@ -202,6 +204,7 @@ function limparCat_(r) {
   const nome = String(r.nome || '').trim();
   if (!nome) return null;
   const hue = Math.max(0, Math.min(359, Number(r.hue) | 0));
+  const meta = Math.round(Number(r.meta) * 100) / 100;
   return {
     id: r.id,
     nome: txt_(nome, 24),
@@ -209,6 +212,7 @@ function limparCat_(r) {
     ordem: Number(r.ordem) | 0,
     alteradoEm: iso_(r.alteradoEm),
     excluido: r.excluido === true ? 1 : 0,
+    meta: isFinite(meta) && meta > 0 ? meta : '',
   };
 }
 

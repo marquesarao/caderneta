@@ -21,7 +21,7 @@ Regras de sincronização:
 
 | Arquivo | Papel |
 |---|---|
-| `index.html` | Telas (configuração, Lançar, Mês, Painel/Relatório, Ajustes) |
+| `index.html` | Telas (configuração, Lançar, Mês, Painel/Metas/Relatório, Ajustes) |
 | `styles.css` | Visual (claro e escuro) |
 | `core.js` | Lógica pura: parcelas, datas, regras de sync, importação |
 | `app.js` | Interface, IndexedDB e chamadas à planilha |

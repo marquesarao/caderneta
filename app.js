@@ -105,11 +105,11 @@
       const res = await chamarScript(cfg.url, {
         chave: cfg.chave, desde: cursor,
         lancamentos: envL.map(C.paraServidor),
-        categorias: envC.map((c) => { const o = { ...c }; delete o.pendente; return o; }),
+        categorias: envC.map(C.catParaServidor),
       });
       if (!res || !res.ok) throw new Error(res && res.erro ? res.erro : "resposta_invalida");
       const vindosL = (res.lancamentos || []).map(C.doServidor);
-      const vindosC = (res.categorias || []).map((c) => ({ ...c, excluido: c.excluido === true, pendente: false }));
+      const vindosC = (res.categorias || []).map(C.catDoServidor);
       C.aplicarSync(lanc, envL, vindosL);
       C.aplicarSync(cat, envC, vindosC);
       const idsL = new Set([...envL, ...vindosL].map((x) => x.id));
@@ -309,7 +309,7 @@
       const n = f.pag === "credito" ? f.n : 1;
       const regs = C.gerarLancamentos({ total: f.centavos, n, data: f.data, categoria: f.cat, pagamento: f.pag, descricao: desc, autor: cfg.autor, agora });
       await salvarLanc(regs);
-      toast(n > 1 ? `Lançado: ${fmt(f.centavos)} em ${n}x em ${catById(f.cat).nome}` : `Lançado: ${fmt(f.centavos)} em ${catById(f.cat).nome}`);
+      toast((n > 1 ? `Lançado: ${fmt(f.centavos)} em ${n}x` : `Lançado: ${fmt(f.centavos)}`) + (textoMeta(f.cat, C.ymOf(f.data)) || ` em ${catById(f.cat).nome}`));
       resetForm(true);
     }
   };
@@ -400,6 +400,122 @@
     itens.forEach(([rot, v]) => { const card = el("div", "pay"); card.append(el("small", null, rot), el("strong", null, fmt(v))); g.append(card); });
     return g;
   }
+  // ================================================================ metas
+  const ROTULO_ESTADO = { ok: "dentro da meta", alerta: "perto do limite", estouro: "acima da meta" };
+
+  function gastoNoMes(ym, catId) {
+    const itens = lancsAtivos().filter((d) => d.mes === ym && d.categoria === catId);
+    return { total: soma(itens), parcelas: soma(itens.filter((d) => d.grupo)) };
+  }
+
+  function textoMeta(catId, ym) {
+    const c = cat.get(catId);
+    if (!c || !(c.meta > 0)) return "";
+    const s = C.situacaoMeta(gastoNoMes(ym, catId).total, c.meta);
+    return ` · ${Math.round(s.pct * 100)}% da meta de ${c.nome}`;
+  }
+
+  function contexto(ym) {
+    const hoje = hojeIso(), atual = C.ymOf(hoje);
+    if (ym < atual) return "Mês encerrado";
+    if (ym > atual) return "Mês ainda não começou";
+    const [y, m, d] = hoje.split("-").map(Number);
+    const resto = new Date(y, m, 0).getDate() - d + 1;
+    return resto === 1 ? "Último dia do mês" : `Faltam ${resto} dias para acabar o mês`;
+  }
+
+  function renderMetas() {
+    $("#metasLabel").textContent = ymLabel(state.ym);
+    const ym = state.ym, ativas = catsAtivas();
+    const comMeta = ativas.filter((c) => c.meta > 0), semMeta = ativas.filter((c) => !(c.meta > 0));
+    const linhas = comMeta.map((c) => ({ c, ...gastoNoMes(ym, c.id) })).map((x) => ({ ...x, s: C.situacaoMeta(x.total, x.c.meta) }))
+      .sort((a, b) => b.s.pct - a.s.pct);
+
+    // Resumo
+    const resumo = $("#metasResumo"); resumo.replaceChildren();
+    const box = $("#metasLista"); box.replaceChildren();
+    if (!comMeta.length) {
+      resumo.append(emptyBox("Nenhuma meta definida", "Toque numa categoria abaixo para definir quanto quer gastar por mês."));
+    } else {
+      const somaMetas = comMeta.reduce((a, c) => a + c.meta, 0), gasto = linhas.reduce((a, x) => a + x.total, 0);
+      const s = C.situacaoMeta(gasto, somaMetas);
+      const card = el("div", "meta-card meta-" + s.estado);
+      const top = el("div", "meta-top");
+      const esq = el("div", "meta-num"); esq.append(el("span", "lbl", "Gasto nas categorias com meta"), el("strong", null, fmt(gasto)), el("small", null, `de ${fmt(somaMetas)} · ${Math.round(s.pct * 100)}%`));
+      top.append(esq, el("span", "pill-estado", ROTULO_ESTADO[s.estado]));
+      const tr = el("div", "track big"), fl = el("div", "fill"); fl.style.width = Math.min(100, s.pct * 100) + "%"; tr.append(fl);
+      const rodape = el("div", "meta-rodape");
+      const ctx = contexto(ym);
+      let livre = s.resta >= 0 ? `Restam ${fmt(s.resta)}` : `Passou ${fmt(-s.resta)}`;
+      if (s.resta > 0 && ym === C.ymOf(hojeIso())) {
+        const dias = Number(ctx.match(/\d+/)?.[0] || 1);
+        livre += ` · ${fmt(Math.floor(s.resta / dias))} por dia`;
+      }
+      rodape.append(el("span", null, livre), el("span", null, ctx));
+      card.append(top, tr, rodape);
+      const fora = soma(lancsAtivos().filter((d) => d.mes === ym && !(cat.get(d.categoria)?.meta > 0)));
+      const acima = linhas.filter((x) => x.s.estado === "estouro").length;
+      if (acima) card.append(el("small", "meta-acima", acima === 1 ? "1 categoria acima da meta" : `${acima} categorias acima da meta`));
+      if (fora > 0) card.append(el("small", "meta-fora", `Fora das metas: ${fmt(fora)}`));
+      resumo.append(card);
+
+      const lista = el("div", "metas");
+      linhas.forEach(({ c, total, parcelas, s }) => {
+        const it = el("button", "meta-item meta-" + s.estado); it.type = "button"; it.style.setProperty("--h", c.hue);
+        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
+        t.append(nm, el("span", "v", `${fmt(total)} / ${fmt(c.meta)}`));
+        const trk = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(total > 0 ? 2 : 0, Math.min(100, s.pct * 100)) + "%"; trk.append(f);
+        const sub = el("div", "bar-sub");
+        sub.append(el("span", "estado", s.resta >= 0 ? `restam ${fmt(s.resta)}` : `passou ${fmt(-s.resta)}`),
+          el("span", null, parcelas > 0 ? `inclui ${fmt(parcelas)} de parcelas` : `${Math.round(s.pct * 100)}%`));
+        it.append(t, trk, sub); it.onclick = () => abrirMeta(c.id); lista.append(it);
+      });
+      box.append(el("h3", "section-title", "Por categoria"), lista);
+    }
+    if (semMeta.length) {
+      const l = el("div", "cat-list");
+      semMeta.forEach((c) => {
+        const b = el("button"); b.type = "button"; b.style.setProperty("--h", c.hue);
+        const g = gastoNoMes(ym, c.id).total;
+        const nm = el("span", null, c.nome); nm.style.flex = "1";
+        b.append(el("span", "dot"), nm, el("small", "num", g ? fmt(g) : ""), el("strong", "definir", "Definir meta"));
+        b.onclick = () => abrirMeta(c.id); l.append(b);
+      });
+      box.append(el("h3", "section-title", "Sem meta"), l);
+    }
+  }
+
+  // ---------- editor de meta ----------
+  let metaCatId = null, metaCentavos = 0;
+  const metaEl = $("#metaValor");
+  metaEl.addEventListener("input", () => {
+    const dig = metaEl.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+    metaCentavos = Number(dig || 0); metaEl.value = fmtNum(metaCentavos);
+    $("#btnMetaSalvar").disabled = !(metaCentavos > 0);
+  });
+  // Ao abrir, o valor atual fica selecionado: digitar substitui em vez de emendar.
+  metaEl.addEventListener("focus", () => metaEl.select());
+  function abrirMeta(id) {
+    const c = cat.get(id); if (!c) return;
+    metaCatId = id; metaCentavos = c.meta > 0 ? c.meta : 0;
+    $("#metaTit").textContent = c.nome;
+    metaEl.value = fmtNum(metaCentavos);
+    $("#btnMetaSalvar").disabled = !(metaCentavos > 0);
+    $("#btnMetaRemover").hidden = !(c.meta > 0);
+    $("#metaSheet").hidden = false; $("#metaSheetBg").hidden = false;
+    metaEl.focus(); metaEl.select();
+  }
+  function fecharMeta() { $("#metaSheet").hidden = true; $("#metaSheetBg").hidden = true; metaCatId = null; }
+  $("#btnFecharMeta").onclick = fecharMeta; $("#metaSheetBg").onclick = fecharMeta;
+  async function gravarMeta(valor) {
+    const c = cat.get(metaCatId); if (!c) return;
+    await salvarCats([{ ...c, meta: valor, alteradoEm: agoraIso(), pendente: true }]);
+    toast(valor ? `Meta de ${c.nome}: ${fmt(valor)} por mês` : `Meta de ${c.nome} removida`);
+    fecharMeta(); if (!$("#sheet").hidden) renderCatEdit();
+  }
+  $("#btnMetaSalvar").onclick = () => { if (metaCentavos > 0) gravarMeta(metaCentavos); };
+  $("#btnMetaRemover").onclick = () => gravarMeta(null);
+
   // ================================================================ painel e relatório
   const PERIODOS = [{ id: 1, nome: "Mês" }, { id: 3, nome: "3 meses" }, { id: 6, nome: "6 meses" }, { id: 12, nome: "12 meses" }, { id: "ano", nome: "Ano" }];
   const MES_ABR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -467,9 +583,10 @@
   }
 
   function renderPainel() {
-    segmentado("#subSeg", [{ id: "dash", nome: "Painel" }, { id: "rel", nome: "Relatório" }], state.sub, (v) => { state.sub = v; renderPainel(); });
-    $("#subDash").hidden = state.sub !== "dash"; $("#subRel").hidden = state.sub !== "rel";
+    segmentado("#subSeg", [{ id: "dash", nome: "Painel" }, { id: "metas", nome: "Metas" }, { id: "rel", nome: "Relatório" }], state.sub, (v) => { state.sub = v; renderPainel(); });
+    $("#subDash").hidden = state.sub !== "dash"; $("#subMetas").hidden = state.sub !== "metas"; $("#subRel").hidden = state.sub !== "rel";
     if (state.sub === "rel") return renderRelatorio();
+    if (state.sub === "metas") return renderMetas();
 
     segmentado("#perSeg", PERIODOS, state.periodo, (v) => { state.periodo = v; renderPainel(); });
     const meses = mesesDoPeriodo(), set = new Set(meses);
@@ -563,6 +680,21 @@
 
   function renderCatEdit() {
     const box = $("#catEdit"); box.replaceChildren();
+    // Categorias removidas que ainda têm lançamentos: permite restaurar.
+    const emUso = new Set(lancsAtivos().map((d) => d.categoria));
+    const removidas = [...cat.values()].filter((c) => c.excluido && emUso.has(c.id));
+    if (removidas.length) {
+      const aviso = el("div", "removidas");
+      aviso.append(el("strong", null, "Categorias removidas em uso"), el("small", null, "Ainda há lançamentos nelas. Restaure para voltarem a aparecer."));
+      removidas.forEach((c) => {
+        const line = el("div", "cat-line rem"); line.style.setProperty("--h", c.hue);
+        const b = el("button", "tem-meta", "Restaurar"); b.type = "button";
+        b.onclick = () => salvarCats([{ ...c, excluido: false, alteradoEm: agoraIso(), pendente: true }]).then(() => { renderCatEdit(); toast(`${c.nome} restaurada`); });
+        line.append(el("span", "dot"), el("span", null, c.nome), b);
+        aviso.append(line);
+      });
+      box.append(aviso);
+    }
     catsAtivas().forEach((c) => {
       const line = el("div", "cat-line"); line.style.setProperty("--h", c.hue);
       const inp = el("input", "txt"); inp.type = "text"; inp.value = c.nome; inp.maxLength = 24; inp.id = "catnome-" + c.id; inp.setAttribute("aria-label", "Nome da categoria");
@@ -570,10 +702,14 @@
       const del = el("button", null, "Remover"); del.type = "button"; let t;
       del.onclick = () => {
         if (catsAtivas().length <= 1) return;
+        const usos = lancsAtivos().filter((d) => d.categoria === c.id).length;
+        if (usos) { toast(`${c.nome} tem ${usos} lançamento${usos > 1 ? "s" : ""}. Exclua ou mude a categoria deles antes de remover.`); return; }
         if (!del.classList.contains("armed")) { del.classList.add("armed"); del.textContent = "Confirmar"; t = setTimeout(() => { del.classList.remove("armed"); del.textContent = "Remover"; }, 3000); return; }
         clearTimeout(t); salvarCats([{ ...c, excluido: true, alteradoEm: agoraIso(), pendente: true }]).then(renderCatEdit);
       };
-      line.append(el("span", "dot"), inp, del); box.append(line);
+      const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? fmt(c.meta) : "Meta"); mb.type = "button";
+      mb.setAttribute("aria-label", `Meta mensal de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
+      line.append(el("span", "dot"), inp, mb, del); box.append(line);
     });
   }
   async function novaCategoria(nome) {

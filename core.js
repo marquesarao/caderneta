@@ -78,6 +78,26 @@
     return local;
   }
 
+  // Categoria: meta em centavos no celular, em reais na planilha (null = sem meta).
+  const catParaServidor = (c) => {
+    const o = { ...c, meta: c.meta > 0 ? Math.round(c.meta) / 100 : null };
+    delete o.pendente;
+    return o;
+  };
+  const catDoServidor = (c) => ({
+    ...c,
+    meta: Number(c.meta) > 0 ? Math.round(Number(c.meta) * 100) : null,
+    excluido: c.excluido === true,
+    pendente: false,
+  });
+
+  /** Situação de uma meta: ok (< 80%), alerta (80–100%), estouro (> 100%). */
+  const situacaoMeta = (gasto, meta) => {
+    if (!(meta > 0)) return null;
+    const pct = gasto / meta;
+    return { pct, estado: pct > 1 ? "estouro" : pct >= 0.8 ? "alerta" : "ok", resta: meta - gasto };
+  };
+
   /** Gera os lançamentos de uma compra (parcelada ou não). Valor total em centavos. */
   function gerarLancamentos({ total, n, data, categoria, pagamento, descricao, autor, agora }) {
     const base = { categoria, pagamento, descricao, autor, criadoEm: agora, alteradoEm: agora, excluido: false, pendente: true };
@@ -118,7 +138,7 @@
   }
 
   const api = { pad, RE_ID, isoDate, ymOf, shiftYm, addMonths, dividir, slug, idCategoria, novoId,
-    paraServidor, doServidor, aplicarSync, gerarLancamentos, importarCaderneta };
+    paraServidor, doServidor, catParaServidor, catDoServidor, situacaoMeta, aplicarSync, gerarLancamentos, importarCaderneta };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Core = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

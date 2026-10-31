@@ -128,7 +128,7 @@
 
   <!-- PAINEL E RELATÓRIO -->
   <section id="view-painel" class="wrap" hidden>
-    <div class="seg seg2" id="subSeg"></div>
+    <div class="seg seg3" id="subSeg"></div>
 
     <div id="subDash" class="wrap" style="gap:16px">
       <div class="month-nav">
@@ -143,6 +143,16 @@
         <div id="grafico"></div>
       </div>
       <div id="painelCorpo" class="wrap" style="gap:14px"></div>
+    </div>
+
+    <div id="subMetas" class="wrap" style="gap:14px" hidden>
+      <div class="month-nav">
+        <button class="icon-btn" data-mshift="-1" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg></button>
+        <h2 id="metasLabel"></h2>
+        <button class="icon-btn" data-mshift="1" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></button>
+      </div>
+      <div id="metasResumo"></div>
+      <div id="metasLista" class="wrap" style="gap:12px"></div>
     </div>
 
     <div id="subRel" class="wrap" style="gap:14px" hidden>
@@ -200,6 +210,21 @@
   <div class="brand"><h3>Categorias</h3><button class="chip" id="btnFecharCat">Fechar</button></div>
   <input type="text" class="txt" id="buscaCat" maxlength="24" placeholder="Buscar ou criar categoria" autocomplete="off" aria-label="Buscar categoria">
   <div class="cat-list" id="catList"></div>
+</div>
+
+<!-- META DA CATEGORIA -->
+<div class="sheet-bg" id="metaSheetBg" hidden></div>
+<div class="sheet" id="metaSheet" role="dialog" aria-label="Meta da categoria" hidden>
+  <div class="brand"><h3 id="metaTit">Meta</h3><button class="chip" id="btnFecharMeta">Fechar</button></div>
+  <p class="note" style="margin:0">Vale para todos os meses. Parcelas contam no mês em que caem.</p>
+  <div class="amount">
+    <label for="metaValor">Meta por mês</label>
+    <div class="amount-row"><span>R$</span><input id="metaValor" type="text" inputmode="numeric" autocomplete="off" value="0,00"></div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="btnMetaSalvar" disabled>Salvar meta</button>
+    <button class="btn ghost" id="btnMetaRemover" style="flex:1 1 100%" hidden>Remover meta</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" hidden></div>
