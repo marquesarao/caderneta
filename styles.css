@@ -11,6 +11,7 @@
   --bar: #A9D9CB;
   --danger: #B3362B;
   --danger-soft: #F8E1DE;
+  --danger-strong: #B3362B;
   --up: #B3362B;
   --down: #0B7A63;
   --cat-s: 52%;
@@ -25,7 +26,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0E1618; --surface: #162226; --ink: #E5EEEF; --muted: #93A6AA; --line: #26363A;
     --accent: #3CC49E; --accent-ink: #062019; --accent-soft: #173A31; --bar: #2B6556;
-    --danger: #F08074; --danger-soft: #3A1E1B; --up: #F08074; --down: #3CC49E;
+    --danger: #F08074; --danger-soft: #3A1E1B; --danger-strong: #C0473B; --up: #F08074; --down: #3CC49E;
     --cat-s: 55%; --cat-l: 64%; --cat-soft-l: 20%;
     color-scheme: dark;
   }
@@ -33,7 +34,7 @@
 :root[data-theme="dark"] {
   --bg: #0E1618; --surface: #162226; --ink: #E5EEEF; --muted: #93A6AA; --line: #26363A;
   --accent: #3CC49E; --accent-ink: #062019; --accent-soft: #173A31; --bar: #2B6556;
-  --danger: #F08074; --danger-soft: #3A1E1B; --up: #F08074; --down: #3CC49E;
+  --danger: #F08074; --danger-soft: #3A1E1B; --danger-strong: #C0473B; --up: #F08074; --down: #3CC49E;
   --cat-s: 55%; --cat-l: 64%; --cat-soft-l: 20%;
   color-scheme: dark;
 }
@@ -225,3 +226,7 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .wrap .wrap { margin: 0; max-width: none; width: 100%; }
 .rel-filters input[type="date"] { flex: none; height: auto; }
+
+/* ---- Botão excluir: largura fixa, contorno em repouso, sólido ao confirmar ---- */
+#btnExcluir { flex: 1 1 100%; background: transparent; border: 1.5px solid var(--danger); color: var(--danger); }
+#btnExcluir.armed { background: var(--danger-strong); border-color: var(--danger-strong); color: #FFFFFF; }
