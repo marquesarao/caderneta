@@ -1,7 +1,7 @@
 /* Caderneta — service worker.
  * Arquivos do app: rede primeiro (atualização chega sozinha), cache quando offline.
  * Fontes do Google: cache primeiro. Chamadas ao Apps Script nunca passam pelo cache. */
-const VERSAO = "caderneta-v7";
+const VERSAO = "caderneta-v8";
 const ARQUIVOS = ["./", "index.html", "styles.css", "core.js", "app.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png"];
 
