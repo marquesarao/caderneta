@@ -307,8 +307,11 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .bar-item.reserva { --estado: var(--accent); }
 .bar-item.reserva .fill { background: var(--accent); opacity: .5; }
 
-/* Reserva: anel vazado no lugar da bolinha cheia */
-.dot.dot-reserva { background: transparent !important; box-sizing: border-box; width: 12px; height: 12px;
-  border: 3px solid hsl(var(--h, 160), var(--cat-s), var(--cat-l)); }
-.legenda { display: inline-flex; align-items: center; gap: 4px; }
-.legenda .dot-reserva { --h: 160; border-color: var(--muted); }
+/* Reserva: etiqueta ao lado do nome */
+.pill-reserva { display: inline-block; flex: none; font-family: var(--font-body); font-size: 10.5px; font-weight: 600; line-height: 1; letter-spacing: .02em;
+  padding: 3px 7px; border-radius: 999px; color: var(--warn); background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); vertical-align: middle; }
+.name .pill-reserva { margin-left: 2px; }
+.cat .pill-reserva { margin-top: auto; }
+.nome-linha { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cat-line button.tem-meta small .pill-reserva { font-size: 9.5px; padding: 2px 6px; }
