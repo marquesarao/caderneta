@@ -687,6 +687,8 @@
   function closeSheet() { $("#sheet").hidden = true; $("#sheetBg").hidden = true; }
   $("#btnAjustes").onclick = openSheet; $("#btnFechar").onclick = closeSheet; $("#sheetBg").onclick = closeSheet;
 
+  let ordCat = "az";
+  try { ordCat = localStorage.getItem("caderneta.ordCat") || "az"; } catch {}
   function renderCatEdit() {
     const box = $("#catEdit"); box.replaceChildren();
     // Categorias removidas que ainda têm lançamentos: permite restaurar.
@@ -704,7 +706,17 @@
       });
       box.append(aviso);
     }
-    catsAtivas().forEach((c) => {
+    // Total das metas e ordenação (A–Z ou maior meta).
+    const ativas = catsAtivas(), comMeta = ativas.filter((c) => c.meta > 0);
+    const tot = $("#metaTotal"); tot.replaceChildren();
+    tot.append(el("span", "lbl", "Total das metas"), el("strong", null, fmt(comMeta.reduce((a, c) => a + c.meta, 0)) + " por mês"),
+      el("small", null, `${comMeta.length} de ${ativas.length} categorias com meta`));
+    segmentado("#ordCat", [{ id: "az", nome: "A–Z" }, { id: "valor", nome: "Maior meta" }], ordCat, (v) => {
+      ordCat = v; try { localStorage.setItem("caderneta.ordCat", v); } catch {} renderCatEdit();
+    });
+    const porNome = (a, b) => a.nome.localeCompare(b.nome, "pt-BR");
+    const ordenadas = ativas.slice().sort(ordCat === "valor" ? (a, b) => (b.meta || 0) - (a.meta || 0) || porNome(a, b) : porNome);
+    ordenadas.forEach((c) => {
       const line = el("div", "cat-line"); line.style.setProperty("--h", c.hue);
       const inp = el("input", "txt"); inp.type = "text"; inp.value = c.nome; inp.maxLength = 24; inp.id = "catnome-" + c.id; inp.setAttribute("aria-label", "Nome da categoria");
       inp.addEventListener("change", () => { const n = inp.value.trim(); if (!n) { inp.value = c.nome; return; } salvarCats([{ ...c, nome: n, alteradoEm: agoraIso(), pendente: true }]); });

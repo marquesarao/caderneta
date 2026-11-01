@@ -274,3 +274,12 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .cat-list button { align-items: flex-start; }
 .cat-list button .dot { margin-top: 6px; }
 .obs-area { resize: vertical; min-height: 72px; font: inherit; line-height: 1.4; }
+
+/* ---- Ajustes: total das metas e ordenação ---- */
+.cat-tools { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.meta-total { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.meta-total .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.meta-total strong { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; color: var(--accent); }
+.meta-total small { color: var(--muted); font-size: 12px; }
+.seg.mini { width: auto; flex: none; }
+.seg.mini button { padding: 7px 12px; font-size: 13px; }
