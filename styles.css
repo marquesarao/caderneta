@@ -315,3 +315,17 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .cat .pill-reserva { margin-top: auto; }
 .nome-linha { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .cat-line button.tem-meta small .pill-reserva { font-size: 9.5px; padding: 2px 6px; }
+
+/* Ajustes: linha da categoria. Celular em duas faixas (nome inteiro em cima); tela larga numa linha só. */
+.cat-line.ed { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "dot nome tag meta del"; gap: 8px 10px; align-items: center; }
+.cat-line.ed > .dot { grid-area: dot; }
+.cat-line.ed > input { grid-area: nome; }
+.cat-line.ed > .tag { grid-area: tag; justify-self: start; }
+.cat-line.ed > .meta-btn { grid-area: meta; }
+.cat-line.ed > .del { grid-area: del; }
+.cat-line.ed > .tag:empty { display: none; }
+@media (max-width: 599px) {
+  .cat-line.ed { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "dot nome nome nome" ". tag meta del";
+    padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .cat-line.ed > .tag:empty { display: block; }
+}

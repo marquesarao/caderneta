@@ -788,10 +788,10 @@
     const porNome = (a, b) => a.nome.localeCompare(b.nome, "pt-BR");
     const ordenadas = ativas.slice().sort(ordCat === "valor" ? (a, b) => (b.meta || 0) - (a.meta || 0) || porNome(a, b) : porNome);
     ordenadas.forEach((c) => {
-      const line = el("div", "cat-line"); line.style.setProperty("--h", c.hue);
+      const line = el("div", "cat-line ed"); line.style.setProperty("--h", c.hue);
       const inp = el("input", "txt"); inp.type = "text"; inp.value = c.nome; inp.maxLength = 24; inp.id = "catnome-" + c.id; inp.setAttribute("aria-label", "Nome da categoria");
       inp.addEventListener("change", () => { const n = inp.value.trim(); if (!n) { inp.value = c.nome; return; } salvarCats([{ ...c, nome: n, alteradoEm: agoraIso(), pendente: true }]); });
-      const del = el("button", null, "Remover"); del.type = "button"; let t;
+      const del = el("button", "del", "Remover"); del.type = "button"; let t;
       del.onclick = () => {
         if (catsAtivas().length <= 1) return;
         const usos = lancsAtivos().filter((d) => d.categoria === c.id).length;
@@ -803,11 +803,12 @@
       if (c.meta > 0) {
         const p = (c.meta / totalMetas) * 100;
         const sub = el("small", null, `${p.toLocaleString("pt-BR", { maximumFractionDigits: p < 10 ? 1 : 0 })}% do total`);
-        if (c.reserva) sub.prepend(etiquetaReserva(), " ");
         mb.append(el("span", null, fmt(c.meta)), sub);
       }
       mb.setAttribute("aria-label", `Meta e observação de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
-      line.append(dotDe(c), inp, mb, del); box.append(line);
+      mb.classList.add("meta-btn");
+      const tag = el("span", "tag"); if (c.reserva) tag.append(etiquetaReserva());
+      line.append(dotDe(c), inp, tag, mb, del); box.append(line);
     });
   }
   async function novaCategoria(nome) {
