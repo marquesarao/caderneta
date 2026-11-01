@@ -414,6 +414,10 @@
 
   function textoMeta(catId, ym) {
     const c = cat.get(catId);
+    if (c && c.reserva) {
+      const r = C.saldoReserva(c, [...lanc.values()], ym);
+      return r ? ` · pago da reserva ${c.nome} · saldo ${fmt(r.saldo)}` : "";
+    }
     if (!c || !(c.meta > 0)) return "";
     const s = C.situacaoMeta(gastoNoMes(ym, catId).total, c.meta);
     return ` · ${Math.round(s.pct * 100)}% da meta de ${c.nome}`;
@@ -431,7 +435,8 @@
   function renderMetas() {
     $("#metasLabel").textContent = ymLabel(state.ym);
     const ym = state.ym, ativas = catsAtivas();
-    const comMeta = ativas.filter((c) => c.meta > 0), semMeta = ativas.filter((c) => !(c.meta > 0));
+    const comMeta = ativas.filter((c) => c.meta > 0 && !c.reserva), semMeta = ativas.filter((c) => !(c.meta > 0) && !c.reserva);
+    const reservas = ativas.filter((c) => c.reserva);
     const linhas = comMeta.map((c) => ({ c, ...gastoNoMes(ym, c.id) })).map((x) => ({ ...x, s: C.situacaoMeta(x.total, x.c.meta) }))
       .sort((a, b) => b.s.pct - a.s.pct);
 
@@ -439,7 +444,7 @@
     const resumo = $("#metasResumo"); resumo.replaceChildren();
     const box = $("#metasLista"); box.replaceChildren();
     if (!comMeta.length) {
-      resumo.append(emptyBox("Nenhuma meta definida", "Toque numa categoria abaixo para definir quanto quer gastar por mês."));
+      resumo.append(emptyBox("Nenhuma meta de gasto definida", "Toque numa categoria abaixo para definir quanto quer gastar por mês."));
     } else {
       const somaMetas = comMeta.reduce((a, c) => a + c.meta, 0), gasto = linhas.reduce((a, x) => a + x.total, 0);
       const s = C.situacaoMeta(gasto, somaMetas);
@@ -457,7 +462,7 @@
       }
       rodape.append(el("span", null, livre), el("span", null, ctx));
       card.append(top, tr, rodape);
-      const fora = soma(lancsAtivos().filter((d) => d.mes === ym && !(cat.get(d.categoria)?.meta > 0)));
+      const fora = soma(lancsAtivos().filter((d) => { const k = cat.get(d.categoria); return d.mes === ym && !(k?.meta > 0) && !k?.reserva; }));
       const acima = linhas.filter((x) => x.s.estado === "estouro").length;
       if (acima) card.append(el("small", "meta-acima", acima === 1 ? "1 categoria acima da meta" : `${acima} categorias acima da meta`));
       if (fora > 0) card.append(el("small", "meta-fora", `Fora das metas: ${fmt(fora)}`));
@@ -476,6 +481,27 @@
       });
       box.append(el("h3", "section-title", "Por categoria"), lista);
     }
+    if (reservas.length) {
+      const todos = [...lanc.values()];
+      const linhasR = reservas.map((c) => ({ c, r: C.saldoReserva(c, todos, ym), pagoMes: gastoNoMes(ym, c.id).total }))
+        .sort((a, b) => a.c.nome.localeCompare(b.c.nome, "pt-BR"));
+      const mensal = reservas.reduce((a, c) => a + (c.meta || 0), 0);
+      const saldoTot = linhasR.reduce((a, x) => a + (x.r ? x.r.saldo : 0), 0);
+      const cab = el("div", "reservas-cab");
+      cab.append(el("h3", "section-title", "Reservas"), el("small", null, `guardando ${fmt(mensal)}/mês · saldo ${fmt(saldoTot)}`));
+      const l = el("div", "metas");
+      linhasR.forEach(({ c, r, pagoMes }) => {
+        const neg = r && r.saldo < 0;
+        const it = el("button", "meta-item reserva-item " + (neg ? "meta-estouro" : "meta-ok")); it.type = "button"; it.style.setProperty("--h", c.hue);
+        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
+        t.append(nm, el("span", "v estado", r ? `saldo ${fmt(r.saldo)}` : "começa no próximo mês"));
+        const sub = el("div", "bar-sub");
+        sub.append(el("span", null, c.meta > 0 ? `guardando ${fmt(c.meta)}/mês` : "sem valor mensal"),
+          el("span", null, pagoMes > 0 ? `pago este mês ${fmt(pagoMes)}` : neg ? `faltou ${fmt(-r.saldo)}` : r ? `${r.meses} ${r.meses > 1 ? "meses" : "mês"} guardando` : ""));
+        it.append(t, sub); it.onclick = () => abrirMeta(c.id); l.append(it);
+      });
+      box.append(cab, l);
+    }
     if (semMeta.length) {
       const l = el("div", "cat-list");
       semMeta.forEach((c) => {
@@ -490,20 +516,36 @@
   }
 
   // ---------- editor de meta ----------
-  let metaCatId = null, metaCentavos = 0;
+  let metaCatId = null, metaCentavos = 0, saldoCentavos = 0;
+  const saldoEl = $("#saldoIni");
+  saldoEl.addEventListener("input", () => {
+    const dig = saldoEl.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+    saldoCentavos = Number(dig || 0); saldoEl.value = fmtNum(saldoCentavos);
+  });
+  saldoEl.addEventListener("focus", () => setTimeout(() => saldoEl.select(), 0));
+  function modoReserva() {
+    const on = $("#metaReserva").checked;
+    $("#metaLbl").textContent = on ? "Quanto guardo por mês" : "Meta por mês";
+    $("#metaNota").textContent = on ? "Entra no saldo da reserva todo mês, automaticamente."
+      : "Vale para todos os meses. Parcelas contam no mês em que caem. Deixe 0,00 para ficar sem meta.";
+    $("#saldoIniBox").hidden = !on;
+  }
+  $("#metaReserva").addEventListener("change", modoReserva);
   const metaEl = $("#metaValor");
   metaEl.addEventListener("input", () => {
     const dig = metaEl.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
     metaCentavos = Number(dig || 0); metaEl.value = fmtNum(metaCentavos);
   });
   // Ao abrir, o valor atual fica selecionado: digitar substitui em vez de emendar.
-  metaEl.addEventListener("focus", () => metaEl.select());
+  // Ao tocar, seleciona tudo depois que o toque termina (senão o toque desfaz a seleção): digitar substitui o valor.
+  metaEl.addEventListener("focus", () => setTimeout(() => metaEl.select(), 0));
   function abrirMeta(id) {
     const c = cat.get(id); if (!c) return;
     metaCatId = id; metaCentavos = c.meta > 0 ? c.meta : 0;
     $("#metaTit").textContent = c.nome;
     metaEl.value = fmtNum(metaCentavos);
     $("#metaObs").value = c.obs || ""; contarObs();
+    $("#metaReserva").checked = !!c.reserva; saldoCentavos = c.saldoIni > 0 ? c.saldoIni : 0; saldoEl.value = fmtNum(saldoCentavos); modoReserva();
     $("#btnMetaRemover").hidden = !(c.meta > 0);
     $("#metaSheet").hidden = false; $("#metaSheetBg").hidden = false;
     metaEl.focus(); metaEl.select();
@@ -514,14 +556,21 @@
   $("#metaObs").addEventListener("input", contarObs);
   async function gravarCategoria(meta, obs, msg) {
     const c = cat.get(metaCatId); if (!c) return;
-    if (meta === (c.meta > 0 ? c.meta : null) && obs === (c.obs || "")) { fecharMeta(); return; }
-    await salvarCats([{ ...c, meta, obs, alteradoEm: agoraIso(), pendente: true }]);
+    const reserva = $("#metaReserva").checked;
+    const reservaDesde = reserva ? (c.reserva && c.reservaDesde ? c.reservaDesde : C.ymOf(hojeIso())) : null;
+    const saldoIni = reserva && saldoCentavos > 0 ? saldoCentavos : null;
+    const igual = meta === (c.meta > 0 ? c.meta : null) && obs === (c.obs || "") && reserva === !!c.reserva
+      && saldoIni === (c.saldoIni > 0 ? c.saldoIni : null);
+    if (igual) { fecharMeta(); return; }
+    await salvarCats([{ ...c, meta, obs, reserva, reservaDesde, saldoIni, alteradoEm: agoraIso(), pendente: true }]);
     toast(msg(c));
     fecharMeta(); if (!$("#sheet").hidden) renderCatEdit();
   }
   $("#btnMetaSalvar").onclick = () => {
     const meta = metaCentavos > 0 ? metaCentavos : null, obs = $("#metaObs").value.trim();
-    gravarCategoria(meta, obs, (c) => `${c.nome} salva` + (meta ? ` · meta ${fmt(meta)} por mês` : ""));
+    const reserva = $("#metaReserva").checked;
+    gravarCategoria(meta, obs, (c) => reserva ? `${c.nome} salva como reserva` + (meta ? ` · guardando ${fmt(meta)}/mês` : "")
+      : `${c.nome} salva` + (meta ? ` · meta ${fmt(meta)} por mês` : ""));
   };
   $("#btnMetaRemover").onclick = () => gravarCategoria(null, $("#metaObs").value.trim(), (c) => `Meta de ${c.nome} removida`);
 
@@ -581,18 +630,23 @@
   function barrasCategoria(itens, nMeses) {
     const total = soma(itens) || 1, porCat = agrupa(itens, (d) => d.categoria), bars = el("div", "bars");
     const linhas = Object.keys(porCat).map((id) => {
-      const c = catById(id), v = porCat[id], orc = nMeses && c.meta > 0 ? c.meta * nMeses : 0;
+      const c = catById(id), v = porCat[id], orc = nMeses && c.meta > 0 && !c.reserva ? c.meta * nMeses : 0;
       return { c, v, orc, s: orc ? C.situacaoMeta(v, orc) : null, share: v / total };
     });
     linhas.sort((a, b) => (b.s ? 1 : 0) - (a.s ? 1 : 0) || (a.s && b.s ? b.s.pct - a.s.pct : b.v - a.v));
     linhas.forEach(({ c, v, orc, s, share }) => {
-      const it = el("div", "bar-item" + (s ? " meta-" + s.estado : nMeses ? " sem-meta" : "")); it.style.setProperty("--h", c.hue);
+      const res = nMeses && c.reserva;
+      const it = el("div", "bar-item" + (s ? " meta-" + s.estado : res ? " reserva" : nMeses ? " sem-meta" : "")); it.style.setProperty("--h", c.hue);
       const top = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
       top.append(nm, el("span", "v", s ? `${fmt(v)} / ${fmt(orc)}` : fmt(v)));
       const pct = s ? s.pct : share;
       const tr = el("div", "track"), fl = el("div", "fill"); fl.style.width = Math.max(2, Math.min(100, pct * 100)) + "%"; tr.append(fl);
       const sub = el("div", "bar-sub"), pctTot = `${Math.round(share * 100)}% do total`;
       if (s) sub.append(el("span", "estado", s.resta >= 0 ? `restam ${fmt(s.resta)}` : `passou ${fmt(-s.resta)}`), el("span", null, pctTot));
+      else if (res) {
+        const r = C.saldoReserva(c, [...lanc.values()], state.ym);
+        sub.append(el("span", "estado", "pago da reserva" + (r ? ` · saldo ${fmt(r.saldo)}` : "")), el("span", null, pctTot));
+      }
       else if (nMeses) sub.append(el("span", null, "sem meta"), el("span", null, pctTot));
       else sub.append(el("span", null, pctTot));
       it.append(top, tr, sub); bars.append(it);
@@ -718,8 +772,10 @@
     const ativas = catsAtivas(), comMeta = ativas.filter((c) => c.meta > 0);
     const totalMetas = comMeta.reduce((a, c) => a + c.meta, 0) || 1;
     const tot = $("#metaTotal"); tot.replaceChildren();
+    const somaR = comMeta.filter((c) => c.reserva).reduce((a, c) => a + c.meta, 0);
     tot.append(el("span", "lbl", "Total das metas"), el("strong", null, fmt(comMeta.reduce((a, c) => a + c.meta, 0)) + " por mês"),
       el("small", null, `${comMeta.length} de ${ativas.length} categorias com meta`));
+    if (somaR > 0) tot.append(el("small", null, `Gasto do mês ${fmt(totalMetas - somaR)} · Reservas ${fmt(somaR)}`));
     segmentado("#ordCat", [{ id: "az", nome: "A–Z" }, { id: "valor", nome: "Maior meta" }], ordCat, (v) => {
       ordCat = v; try { localStorage.setItem("caderneta.ordCat", v); } catch {} renderCatEdit();
     });
@@ -740,7 +796,7 @@
       const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? null : "Detalhes"); mb.type = "button";
       if (c.meta > 0) {
         const p = (c.meta / totalMetas) * 100;
-        mb.append(el("span", null, fmt(c.meta)), el("small", null, `${p.toLocaleString("pt-BR", { maximumFractionDigits: p < 10 ? 1 : 0 })}% do total`));
+        mb.append(el("span", null, fmt(c.meta)), el("small", null, (c.reserva ? "reserva · " : "") + `${p.toLocaleString("pt-BR", { maximumFractionDigits: p < 10 ? 1 : 0 })}% do total`));
       }
       mb.setAttribute("aria-label", `Meta e observação de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
       line.append(el("span", "dot"), inp, mb, del); box.append(line);

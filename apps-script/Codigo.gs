@@ -20,9 +20,10 @@ const COLS_LANC = ['id', 'data', 'mes', 'valor', 'categoria', 'pagamento', 'desc
 const FMT_LANC = ['@', '@', '@', '#,##0.00', '@', '@', '@', '@',
   '0', '0', '@', '@', '@', '0', '0'];
 
-// 'meta' e 'obs' ficam no fim para não deslocar as colunas que já existem na planilha.
-const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm', 'meta', 'obs'];
-const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0', '#,##0.00', '@'];
+// colunas novas (meta, obs, reserva...) ficam sempre no fim para não deslocar as colunas que já existem na planilha.
+const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm', 'meta', 'obs',
+  'reserva', 'reservaDesde', 'saldoIni'];
+const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0', '#,##0.00', '@', '0', '@', '#,##0.00'];
 
 const RE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 const RE_ID = /^[A-Za-z0-9_-]{4,64}$/;
@@ -39,7 +40,7 @@ function setup() {
     chave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
     props.setProperty('CHAVE', chave);
   }
-  Logger.log('Abas prontas (versão 3, com metas e observações).');
+  Logger.log('Abas prontas (versão 4, com metas, observações e reservas).');
   Logger.log('CHAVE DA CASA (guarde, vai nos dois celulares): ' + chave);
 }
 
@@ -54,7 +55,7 @@ function prepararAba_(ss, nome, cols) {
 // ---------------------------------------------------------------- web app
 
 function doGet() {
-  return json_({ ok: true, app: 'caderneta', versao: 3 });
+  return json_({ ok: true, app: 'caderneta', versao: 4 });
 }
 
 function doPost(e) {
@@ -152,11 +153,12 @@ function ler_(sh, cols, desde) {
       const o = {};
       cols.forEach(function (c, i) { o[c] = v[i]; });
       o.excluido = Number(o.excluido) === 1;
-      ['parcela', 'parcelas', 'hue', 'ordem', 'meta'].forEach(function (c) {
+      ['parcela', 'parcelas', 'hue', 'ordem', 'meta', 'saldoIni'].forEach(function (c) {
         if (c in o) o[c] = o[c] === '' ? null : Number(o[c]);
       });
       if ('valor' in o) o.valor = Number(o.valor);
-      ['grupo'].forEach(function (c) { if (c in o && o[c] === '') o[c] = null; });
+      ['grupo', 'reservaDesde'].forEach(function (c) { if (c in o && o[c] === '') o[c] = null; });
+      if ('reserva' in o) o.reserva = Number(o.reserva) === 1;
       return o;
     });
 }
@@ -205,6 +207,7 @@ function limparCat_(r) {
   if (!nome) return null;
   const hue = Math.max(0, Math.min(359, Number(r.hue) | 0));
   const meta = Math.round(Number(r.meta) * 100) / 100;
+  const saldoIni = Math.round(Number(r.saldoIni) * 100) / 100;
   return {
     id: r.id,
     nome: txt_(nome, 24),
@@ -214,6 +217,9 @@ function limparCat_(r) {
     excluido: r.excluido === true ? 1 : 0,
     meta: isFinite(meta) && meta > 0 ? meta : '',
     obs: txt_(String(r.obs || '').trim(), 200),
+    reserva: r.reserva === true ? 1 : 0,
+    reservaDesde: /^\d{4}-\d{2}$/.test(String(r.reservaDesde || '')) ? String(r.reservaDesde) : '',
+    saldoIni: isFinite(saldoIni) && saldoIni > 0 ? saldoIni : '',
   };
 }
 

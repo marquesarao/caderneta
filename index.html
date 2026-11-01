@@ -221,10 +221,19 @@
 <div class="sheet-bg" id="metaSheetBg" hidden></div>
 <div class="sheet" id="metaSheet" role="dialog" aria-label="Detalhes da categoria" hidden>
   <div class="brand"><h3 id="metaTit">Meta</h3><button class="chip" id="btnFecharMeta">Fechar</button></div>
+  <label class="toggle" for="metaReserva">
+    <input type="checkbox" id="metaReserva">
+    <span class="toggle-txt"><strong>É reserva</strong><small>Guardo todo mês e pago de vez em quando (IPVA, seguro…). O pagamento sai do saldo e não conta como estouro.</small></span>
+  </label>
   <div class="amount">
-    <label for="metaValor">Meta por mês</label>
+    <label for="metaValor" id="metaLbl">Meta por mês</label>
     <div class="amount-row"><span>R$</span><input id="metaValor" type="text" inputmode="numeric" autocomplete="off" value="0,00"></div>
-    <span class="note">Vale para todos os meses. Parcelas contam no mês em que caem. Deixe 0,00 para ficar sem meta.</span>
+    <span class="note" id="metaNota">Vale para todos os meses. Parcelas contam no mês em que caem. Deixe 0,00 para ficar sem meta.</span>
+  </div>
+  <div class="amount" id="saldoIniBox" hidden>
+    <label for="saldoIni">Saldo já guardado hoje</label>
+    <div class="amount-row"><span>R$</span><input id="saldoIni" type="text" inputmode="numeric" autocomplete="off" value="0,00"></div>
+    <span class="note">Opcional. A partir deste mês, o valor mensal entra sozinho no saldo.</span>
   </div>
   <div class="field">
     <label class="lbl" for="metaObs">O que entra nesta categoria</label>

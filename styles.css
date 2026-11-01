@@ -294,3 +294,15 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .bar-item.meta-ok .fill, .bar-item.meta-alerta .fill, .bar-item.meta-estouro .fill { background: var(--estado); }
 .bar-item .estado { color: var(--estado); font-weight: 600; }
 .bar-item.sem-meta .fill { background: var(--muted); opacity: .45; }
+
+/* ---- Reservas ---- */
+.toggle { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); cursor: pointer; }
+.toggle input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.toggle-txt { display: flex; flex-direction: column; gap: 2px; }
+.toggle-txt small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+#saldoIni { border: 0; background: transparent; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 28px; font-weight: 600; width: 100%; min-width: 0; padding: 0; outline: none; }
+.reservas-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.reservas-cab small { color: var(--muted); font-size: 13px; }
+.reserva-item .bar-top .v { font-size: 15px; }
+.bar-item.reserva { --estado: var(--accent); }
+.bar-item.reserva .fill { background: var(--accent); opacity: .5; }

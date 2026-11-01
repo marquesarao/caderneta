@@ -80,7 +80,8 @@
 
   // Categoria: meta em centavos no celular, em reais na planilha (null = sem meta).
   const catParaServidor = (c) => {
-    const o = { ...c, meta: c.meta > 0 ? Math.round(c.meta) / 100 : null };
+    const o = { ...c, meta: c.meta > 0 ? Math.round(c.meta) / 100 : null,
+      reserva: c.reserva === true, saldoIni: c.saldoIni > 0 ? Math.round(c.saldoIni) / 100 : null };
     delete o.pendente;
     return o;
   };
@@ -88,6 +89,9 @@
     ...c,
     meta: Number(c.meta) > 0 ? Math.round(Number(c.meta) * 100) : null,
     obs: c.obs ? String(c.obs) : "",
+    reserva: c.reserva === true,
+    reservaDesde: c.reservaDesde || null,
+    saldoIni: Number(c.saldoIni) > 0 ? Math.round(Number(c.saldoIni) * 100) : null,
     excluido: c.excluido === true,
     pendente: false,
   });
@@ -98,6 +102,21 @@
     const pct = gasto / meta;
     return { pct, estado: pct > 1 ? "estouro" : pct >= 0.8 ? "alerta" : "ok", resta: meta - gasto };
   };
+
+  const mesesEntre = (de, ate) => {
+    const [y1, m1] = de.split("-").map(Number), [y2, m2] = ate.split("-").map(Number);
+    return (y2 - y1) * 12 + (m2 - m1);
+  };
+  /** Saldo de uma reserva no fim do mês ym:
+   *  saldo inicial + (quanto guarda por mês × meses desde que virou reserva) − pagamentos nesse intervalo. */
+  function saldoReserva(c, lancs, ym) {
+    if (!c || !c.reserva || !c.reservaDesde || ym < c.reservaDesde) return null;
+    const meses = mesesEntre(c.reservaDesde, ym) + 1;
+    const pagos = lancs.filter((d) => !d.excluido && d.categoria === c.id && d.mes >= c.reservaDesde && d.mes <= ym)
+      .reduce((a, d) => a + d.valor, 0);
+    const guardado = (c.saldoIni || 0) + (c.meta || 0) * meses;
+    return { guardado, pagos, saldo: guardado - pagos, meses };
+  }
 
   /** Gera os lançamentos de uma compra (parcelada ou não). Valor total em centavos. */
   function gerarLancamentos({ total, n, data, categoria, pagamento, descricao, autor, agora }) {
@@ -139,7 +158,7 @@
   }
 
   const api = { pad, RE_ID, isoDate, ymOf, shiftYm, addMonths, dividir, slug, idCategoria, novoId,
-    paraServidor, doServidor, catParaServidor, catDoServidor, situacaoMeta, aplicarSync, gerarLancamentos, importarCaderneta };
+    paraServidor, doServidor, catParaServidor, catDoServidor, situacaoMeta, mesesEntre, saldoReserva, aplicarSync, gerarLancamentos, importarCaderneta };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Core = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
