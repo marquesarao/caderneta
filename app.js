@@ -574,18 +574,27 @@
     return svg;
   }
 
-  function barrasCategoria(itens, anterior) {
-    const total = soma(itens), porCat = agrupa(itens, (d) => d.categoria);
-    const ordem = Object.keys(porCat).sort((a, b) => porCat[b] - porCat[a]);
-    const max = porCat[ordem[0]] || 1, bars = el("div", "bars");
-    ordem.forEach((id) => {
-      const c = catById(id), v = porCat[id];
-      const it = el("div", "bar-item"); it.style.setProperty("--h", c.hue);
+  // Barras por categoria.
+  //  - Com nMeses (Painel): categoria com meta mostra gasto × orçamento (meta × meses), na cor da situação;
+  //    sem meta mostra barra neutra com o % do total.
+  //  - Sem nMeses (Relatório): barra = % do total, na cor da categoria.
+  function barrasCategoria(itens, nMeses) {
+    const total = soma(itens) || 1, porCat = agrupa(itens, (d) => d.categoria), bars = el("div", "bars");
+    const linhas = Object.keys(porCat).map((id) => {
+      const c = catById(id), v = porCat[id], orc = nMeses && c.meta > 0 ? c.meta * nMeses : 0;
+      return { c, v, orc, s: orc ? C.situacaoMeta(v, orc) : null, share: v / total };
+    });
+    linhas.sort((a, b) => (b.s ? 1 : 0) - (a.s ? 1 : 0) || (a.s && b.s ? b.s.pct - a.s.pct : b.v - a.v));
+    linhas.forEach(({ c, v, orc, s, share }) => {
+      const it = el("div", "bar-item" + (s ? " meta-" + s.estado : nMeses ? " sem-meta" : "")); it.style.setProperty("--h", c.hue);
       const top = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
-      top.append(nm, el("span", "v", fmt(v)));
-      const tr = el("div", "track"), fl = el("div", "fill"); fl.style.width = Math.max(2, (v / max) * 100) + "%"; tr.append(fl);
-      const sub = el("div", "bar-sub"); sub.append(el("span", null, `${Math.round((v / total) * 100)}% do total`));
-      if (anterior) { const p = anterior[id] || 0; sub.append(el("span", "num", p ? `mês anterior ${fmt(p)}` : "sem gasto no mês anterior")); }
+      top.append(nm, el("span", "v", s ? `${fmt(v)} / ${fmt(orc)}` : fmt(v)));
+      const pct = s ? s.pct : share;
+      const tr = el("div", "track"), fl = el("div", "fill"); fl.style.width = Math.max(2, Math.min(100, pct * 100)) + "%"; tr.append(fl);
+      const sub = el("div", "bar-sub"), pctTot = `${Math.round(share * 100)}% do total`;
+      if (s) sub.append(el("span", "estado", s.resta >= 0 ? `restam ${fmt(s.resta)}` : `passou ${fmt(-s.resta)}`), el("span", null, pctTot));
+      else if (nMeses) sub.append(el("span", null, "sem meta"), el("span", null, pctTot));
+      else sub.append(el("span", null, pctTot));
       it.append(top, tr, sub); bars.append(it);
     });
     return bars;
@@ -621,8 +630,7 @@
     const corpo = $("#painelCorpo"); corpo.replaceChildren();
     if (!itens.length) { corpo.append(emptyBox("Sem lançamentos no período", "Escolha outro período ou lance uma despesa.")); }
     else {
-      const anterior = meses.length === 1 ? agrupa(todos.filter((d) => d.mes === C.shiftYm(state.ym, -1)), (d) => d.categoria) : null;
-      corpo.append(el("h3", "section-title", "Por categoria"), barrasCategoria(itens, anterior));
+      corpo.append(el("h3", "section-title", meses.length > 1 ? `Por categoria · orçamento de ${meses.length} meses` : "Por categoria"), barrasCategoria(itens, meses.length));
       const autores = [...new Set(itens.map((d) => d.autor).filter(Boolean))];
       if (autores.length > 1) corpo.append(el("h3", "section-title", "Por pessoa"), cardsGrid("pay-grid", autores.map((a) => [a, soma(itens.filter((d) => d.autor === a))])));
       corpo.append(el("h3", "section-title", "Por forma de pagamento"), cardsGrid("pay-grid", PAGS.map((p) => [p.nome, soma(itens.filter((d) => d.pagamento === p.id))])));

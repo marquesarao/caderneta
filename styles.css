@@ -289,3 +289,8 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 /* Janelas de baixo: o conteúdo não encolhe, a janela rola. */
 .sheet > * { flex-shrink: 0; }
 .sheet { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* Painel: barras de orçamento */
+.bar-item.meta-ok .fill, .bar-item.meta-alerta .fill, .bar-item.meta-estouro .fill { background: var(--estado); }
+.bar-item .estado { color: var(--estado); font-weight: 600; }
+.bar-item.sem-meta .fill { background: var(--muted); opacity: .45; }
