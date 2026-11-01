@@ -264,3 +264,13 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .removidas { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: var(--warn-soft); margin-bottom: 4px; }
 .removidas small { color: var(--muted); }
 .cat-line.rem { grid-template-columns: auto minmax(0, 1fr) auto; }
+
+/* ---- Observação da categoria ---- */
+.cat-obs { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.4; color: var(--ink);
+  background: hsl(var(--h, 160), 40%, var(--cat-soft-l)); border-left: 3px solid hsl(var(--h, 160), var(--cat-s), var(--cat-l)); }
+.cat-obs strong { font-weight: 600; }
+.nome-obs { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.nome-obs small { color: var(--muted); font-size: 12.5px; font-weight: 400; line-height: 1.35; }
+.cat-list button { align-items: flex-start; }
+.cat-list button .dot { margin-top: 6px; }
+.obs-area { resize: vertical; min-height: 72px; font: inherit; line-height: 1.4; }

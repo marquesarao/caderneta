@@ -87,6 +87,7 @@
   const catDoServidor = (c) => ({
     ...c,
     meta: Number(c.meta) > 0 ? Math.round(Number(c.meta) * 100) : null,
+    obs: c.obs ? String(c.obs) : "",
     excluido: c.excluido === true,
     pendente: false,
   });

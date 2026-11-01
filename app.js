@@ -216,6 +216,9 @@
       box.append(b);
     });
     $("#btnOutras").hidden = catsAtivas().length <= TOP_N;
+    const sel = state.form.cat ? cat.get(state.form.cat) : null, dica = $("#catObs");
+    dica.hidden = !(sel && sel.obs);
+    if (sel && sel.obs) { dica.replaceChildren(el("strong", null, sel.nome + ": "), document.createTextNode(sel.obs)); dica.style.setProperty("--h", sel.hue); }
   }
   function renderPags() {
     const box = $("#pags"); box.replaceChildren();
@@ -347,7 +350,8 @@
     const q = norm($("#buscaCat").value), box = $("#catList"); box.replaceChildren();
     catsAtivas().filter((c) => !q || norm(c.nome).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach((c) => {
       const b = el("button"); b.type = "button"; b.style.setProperty("--h", c.hue); b.setAttribute("aria-pressed", String(state.form.cat === c.id));
-      b.append(el("span", "dot"), el("span", null, c.nome)); b.onclick = () => escolherCat(c.id); box.append(b);
+      const txt = el("span", "nome-obs"); txt.append(el("span", null, c.nome)); if (c.obs) txt.append(el("small", null, c.obs));
+      b.append(el("span", "dot"), txt); b.onclick = () => escolherCat(c.id); box.append(b);
     });
     const txt = $("#buscaCat").value.trim();
     if (txt && !catsAtivas().some((c) => norm(c.nome) === q)) {
@@ -491,7 +495,6 @@
   metaEl.addEventListener("input", () => {
     const dig = metaEl.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
     metaCentavos = Number(dig || 0); metaEl.value = fmtNum(metaCentavos);
-    $("#btnMetaSalvar").disabled = !(metaCentavos > 0);
   });
   // Ao abrir, o valor atual fica selecionado: digitar substitui em vez de emendar.
   metaEl.addEventListener("focus", () => metaEl.select());
@@ -500,21 +503,27 @@
     metaCatId = id; metaCentavos = c.meta > 0 ? c.meta : 0;
     $("#metaTit").textContent = c.nome;
     metaEl.value = fmtNum(metaCentavos);
-    $("#btnMetaSalvar").disabled = !(metaCentavos > 0);
+    $("#metaObs").value = c.obs || ""; contarObs();
     $("#btnMetaRemover").hidden = !(c.meta > 0);
     $("#metaSheet").hidden = false; $("#metaSheetBg").hidden = false;
     metaEl.focus(); metaEl.select();
   }
   function fecharMeta() { $("#metaSheet").hidden = true; $("#metaSheetBg").hidden = true; metaCatId = null; }
   $("#btnFecharMeta").onclick = fecharMeta; $("#metaSheetBg").onclick = fecharMeta;
-  async function gravarMeta(valor) {
+  function contarObs() { $("#metaObsCont").textContent = `${$("#metaObs").value.length}/200`; }
+  $("#metaObs").addEventListener("input", contarObs);
+  async function gravarCategoria(meta, obs, msg) {
     const c = cat.get(metaCatId); if (!c) return;
-    await salvarCats([{ ...c, meta: valor, alteradoEm: agoraIso(), pendente: true }]);
-    toast(valor ? `Meta de ${c.nome}: ${fmt(valor)} por mês` : `Meta de ${c.nome} removida`);
+    if (meta === (c.meta > 0 ? c.meta : null) && obs === (c.obs || "")) { fecharMeta(); return; }
+    await salvarCats([{ ...c, meta, obs, alteradoEm: agoraIso(), pendente: true }]);
+    toast(msg(c));
     fecharMeta(); if (!$("#sheet").hidden) renderCatEdit();
   }
-  $("#btnMetaSalvar").onclick = () => { if (metaCentavos > 0) gravarMeta(metaCentavos); };
-  $("#btnMetaRemover").onclick = () => gravarMeta(null);
+  $("#btnMetaSalvar").onclick = () => {
+    const meta = metaCentavos > 0 ? metaCentavos : null, obs = $("#metaObs").value.trim();
+    gravarCategoria(meta, obs, (c) => `${c.nome} salva` + (meta ? ` · meta ${fmt(meta)} por mês` : ""));
+  };
+  $("#btnMetaRemover").onclick = () => gravarCategoria(null, $("#metaObs").value.trim(), (c) => `Meta de ${c.nome} removida`);
 
   // ================================================================ painel e relatório
   const PERIODOS = [{ id: 1, nome: "Mês" }, { id: 3, nome: "3 meses" }, { id: 6, nome: "6 meses" }, { id: 12, nome: "12 meses" }, { id: "ano", nome: "Ano" }];
@@ -707,8 +716,8 @@
         if (!del.classList.contains("armed")) { del.classList.add("armed"); del.textContent = "Confirmar"; t = setTimeout(() => { del.classList.remove("armed"); del.textContent = "Remover"; }, 3000); return; }
         clearTimeout(t); salvarCats([{ ...c, excluido: true, alteradoEm: agoraIso(), pendente: true }]).then(renderCatEdit);
       };
-      const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? fmt(c.meta) : "Meta"); mb.type = "button";
-      mb.setAttribute("aria-label", `Meta mensal de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
+      const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? fmt(c.meta) : "Detalhes"); mb.type = "button";
+      mb.setAttribute("aria-label", `Meta e observação de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
       line.append(el("span", "dot"), inp, mb, del); box.append(line);
     });
   }

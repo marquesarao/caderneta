@@ -20,9 +20,9 @@ const COLS_LANC = ['id', 'data', 'mes', 'valor', 'categoria', 'pagamento', 'desc
 const FMT_LANC = ['@', '@', '@', '#,##0.00', '@', '@', '@', '@',
   '0', '0', '@', '@', '@', '0', '0'];
 
-// 'meta' fica no fim para não deslocar as colunas que já existem na planilha.
-const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm', 'meta'];
-const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0', '#,##0.00'];
+// 'meta' e 'obs' ficam no fim para não deslocar as colunas que já existem na planilha.
+const COLS_CAT = ['id', 'nome', 'hue', 'ordem', 'alteradoEm', 'excluido', 'servidorEm', 'meta', 'obs'];
+const FMT_CAT = ['@', '@', '0', '0', '@', '0', '0', '#,##0.00', '@'];
 
 const RE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 const RE_ID = /^[A-Za-z0-9_-]{4,64}$/;
@@ -39,7 +39,7 @@ function setup() {
     chave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
     props.setProperty('CHAVE', chave);
   }
-  Logger.log('Abas prontas (versão 2, com metas).');
+  Logger.log('Abas prontas (versão 3, com metas e observações).');
   Logger.log('CHAVE DA CASA (guarde, vai nos dois celulares): ' + chave);
 }
 
@@ -54,7 +54,7 @@ function prepararAba_(ss, nome, cols) {
 // ---------------------------------------------------------------- web app
 
 function doGet() {
-  return json_({ ok: true, app: 'caderneta', versao: 2 });
+  return json_({ ok: true, app: 'caderneta', versao: 3 });
 }
 
 function doPost(e) {
@@ -213,6 +213,7 @@ function limparCat_(r) {
     alteradoEm: iso_(r.alteradoEm),
     excluido: r.excluido === true ? 1 : 0,
     meta: isFinite(meta) && meta > 0 ? meta : '',
+    obs: txt_(String(r.obs || '').trim(), 200),
   };
 }
 

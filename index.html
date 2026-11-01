@@ -80,6 +80,7 @@
     <div class="field">
       <span class="lbl">Categoria</span>
       <div class="cats" id="cats"></div>
+      <p class="cat-obs" id="catObs" hidden></p>
       <button class="more-btn" type="button" id="btnOutras"><span>Outras categorias</span><strong>›</strong></button>
     </div>
     <div class="field">
@@ -214,15 +215,20 @@
 
 <!-- META DA CATEGORIA -->
 <div class="sheet-bg" id="metaSheetBg" hidden></div>
-<div class="sheet" id="metaSheet" role="dialog" aria-label="Meta da categoria" hidden>
+<div class="sheet" id="metaSheet" role="dialog" aria-label="Detalhes da categoria" hidden>
   <div class="brand"><h3 id="metaTit">Meta</h3><button class="chip" id="btnFecharMeta">Fechar</button></div>
-  <p class="note" style="margin:0">Vale para todos os meses. Parcelas contam no mês em que caem.</p>
   <div class="amount">
     <label for="metaValor">Meta por mês</label>
     <div class="amount-row"><span>R$</span><input id="metaValor" type="text" inputmode="numeric" autocomplete="off" value="0,00"></div>
+    <span class="note">Vale para todos os meses. Parcelas contam no mês em que caem. Deixe 0,00 para ficar sem meta.</span>
+  </div>
+  <div class="field">
+    <label class="lbl" for="metaObs">O que entra nesta categoria</label>
+    <textarea class="txt obs-area" id="metaObs" maxlength="200" rows="3" placeholder="Ex.: supermercado, feira, açougue e padaria. Não inclui restaurante."></textarea>
+    <span class="note" id="metaObsCont">0/200</span>
   </div>
   <div class="actions">
-    <button class="btn primary" id="btnMetaSalvar" disabled>Salvar meta</button>
+    <button class="btn primary" id="btnMetaSalvar">Salvar</button>
     <button class="btn ghost" id="btnMetaRemover" style="flex:1 1 100%" hidden>Remover meta</button>
   </div>
 </div>
