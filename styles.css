@@ -283,3 +283,5 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .meta-total small { color: var(--muted); font-size: 12px; }
 .seg.mini { width: auto; flex: none; }
 .seg.mini button { padding: 7px 12px; font-size: 13px; }
+.cat-line button.tem-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1.15; padding: 5px 10px; }
+.cat-line button.tem-meta small { font-family: var(--font-body); font-size: 11px; color: var(--muted); }

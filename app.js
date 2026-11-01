@@ -708,6 +708,7 @@
     }
     // Total das metas e ordenação (A–Z ou maior meta).
     const ativas = catsAtivas(), comMeta = ativas.filter((c) => c.meta > 0);
+    const totalMetas = comMeta.reduce((a, c) => a + c.meta, 0) || 1;
     const tot = $("#metaTotal"); tot.replaceChildren();
     tot.append(el("span", "lbl", "Total das metas"), el("strong", null, fmt(comMeta.reduce((a, c) => a + c.meta, 0)) + " por mês"),
       el("small", null, `${comMeta.length} de ${ativas.length} categorias com meta`));
@@ -728,7 +729,11 @@
         if (!del.classList.contains("armed")) { del.classList.add("armed"); del.textContent = "Confirmar"; t = setTimeout(() => { del.classList.remove("armed"); del.textContent = "Remover"; }, 3000); return; }
         clearTimeout(t); salvarCats([{ ...c, excluido: true, alteradoEm: agoraIso(), pendente: true }]).then(renderCatEdit);
       };
-      const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? fmt(c.meta) : "Detalhes"); mb.type = "button";
+      const mb = el("button", c.meta > 0 ? "tem-meta" : null, c.meta > 0 ? null : "Detalhes"); mb.type = "button";
+      if (c.meta > 0) {
+        const p = (c.meta / totalMetas) * 100;
+        mb.append(el("span", null, fmt(c.meta)), el("small", null, `${p.toLocaleString("pt-BR", { maximumFractionDigits: p < 10 ? 1 : 0 })}% do total`));
+      }
       mb.setAttribute("aria-label", `Meta e observação de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
       line.append(el("span", "dot"), inp, mb, del); box.append(line);
     });
