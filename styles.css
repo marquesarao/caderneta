@@ -306,3 +306,9 @@ input[type="date"] { width: auto; flex: 1 1 150px; }
 .reserva-item .bar-top .v { font-size: 15px; }
 .bar-item.reserva { --estado: var(--accent); }
 .bar-item.reserva .fill { background: var(--accent); opacity: .5; }
+
+/* Reserva: anel vazado no lugar da bolinha cheia */
+.dot.dot-reserva { background: transparent !important; box-sizing: border-box; width: 12px; height: 12px;
+  border: 3px solid hsl(var(--h, 160), var(--cat-s), var(--cat-l)); }
+.legenda { display: inline-flex; align-items: center; gap: 4px; }
+.legenda .dot-reserva { --h: 160; border-color: var(--muted); }

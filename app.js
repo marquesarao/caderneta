@@ -170,11 +170,17 @@
         if (d.autor) sm.append(el("span", "autor", d.autor));
         if (d.pendente) sm.append(document.createTextNode(" · não enviado"));
         desc.append(el("strong", null, tituloDe(d)), sm);
-        row.append(el("span", "dot"), desc, el("span", "val", fmt(d.valor)));
+        row.append(dotDe(c), desc, el("span", "val", fmt(d.valor)));
         row.onclick = () => startEdit(d); rows.append(row);
       });
       sec.append(head, rows); box.append(sec);
     });
+  }
+  // Bolinha da categoria; reserva usa anel vazado para se destacar.
+  function dotDe(c) {
+    const d = el("span", c && c.reserva ? "dot dot-reserva" : "dot");
+    if (c && c.reserva) d.title = "Reserva";
+    return d;
   }
   function emptyBox(title, sub) { const e = el("div", "empty"); e.append(el("strong", null, title)); if (sub) e.append(el("span", null, sub)); return e; }
 
@@ -211,7 +217,7 @@
     topCats().forEach((c) => {
       const b = el("button", "cat"); b.type = "button"; b.style.setProperty("--h", c.hue);
       b.setAttribute("aria-pressed", String(state.form.cat === c.id));
-      b.append(el("span", "dot"), el("span", null, c.nome));
+      b.append(dotDe(c), el("span", null, c.nome));
       b.onclick = () => { state.form.cat = c.id; renderCatsPicker(); updateSaveBtn(); };
       box.append(b);
     });
@@ -351,7 +357,7 @@
     catsAtivas().filter((c) => !q || norm(c.nome).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach((c) => {
       const b = el("button"); b.type = "button"; b.style.setProperty("--h", c.hue); b.setAttribute("aria-pressed", String(state.form.cat === c.id));
       const txt = el("span", "nome-obs"); txt.append(el("span", null, c.nome)); if (c.obs) txt.append(el("small", null, c.obs));
-      b.append(el("span", "dot"), txt); b.onclick = () => escolherCat(c.id); box.append(b);
+      b.append(dotDe(c), txt); b.onclick = () => escolherCat(c.id); box.append(b);
     });
     const txt = $("#buscaCat").value.trim();
     if (txt && !catsAtivas().some((c) => norm(c.nome) === q)) {
@@ -372,7 +378,7 @@
     if (itens.length < 2) return;
     const all = el("button", "chip", rotuloTodos); all.setAttribute("aria-pressed", String(!ativo)); all.onclick = () => onPick(null); box.append(all);
     itens.forEach((it) => {
-      const b = el("button", "chip"); if (it.hue != null) { b.style.setProperty("--h", it.hue); b.append(el("span", "dot")); }
+      const b = el("button", "chip"); if (it.hue != null) { b.style.setProperty("--h", it.hue); b.append(dotDe(it)); }
       b.append(el("span", null, it.nome)); b.setAttribute("aria-pressed", String(ativo === it.id));
       b.onclick = () => onPick(ativo === it.id ? null : it.id); box.append(b);
     });
@@ -471,7 +477,7 @@
       const lista = el("div", "metas");
       linhas.forEach(({ c, total, parcelas, s }) => {
         const it = el("button", "meta-item meta-" + s.estado); it.type = "button"; it.style.setProperty("--h", c.hue);
-        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
+        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(dotDe(c), el("span", null, c.nome));
         t.append(nm, el("span", "v", `${fmt(total)} / ${fmt(c.meta)}`));
         const trk = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(total > 0 ? 2 : 0, Math.min(100, s.pct * 100)) + "%"; trk.append(f);
         const sub = el("div", "bar-sub");
@@ -493,7 +499,7 @@
       linhasR.forEach(({ c, r, pagoMes }) => {
         const neg = r && r.saldo < 0;
         const it = el("button", "meta-item reserva-item " + (neg ? "meta-estouro" : "meta-ok")); it.type = "button"; it.style.setProperty("--h", c.hue);
-        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
+        const t = el("div", "bar-top"), nm = el("span", "name"); nm.append(dotDe(c), el("span", null, c.nome));
         t.append(nm, el("span", "v estado", r ? `saldo ${fmt(r.saldo)}` : "começa no próximo mês"));
         const sub = el("div", "bar-sub");
         sub.append(el("span", null, c.meta > 0 ? `guardando ${fmt(c.meta)}/mês` : "sem valor mensal"),
@@ -508,7 +514,7 @@
         const b = el("button"); b.type = "button"; b.style.setProperty("--h", c.hue);
         const g = gastoNoMes(ym, c.id).total;
         const nm = el("span", null, c.nome); nm.style.flex = "1";
-        b.append(el("span", "dot"), nm, el("small", "num", g ? fmt(g) : ""), el("strong", "definir", "Definir meta"));
+        b.append(dotDe(c), nm, el("small", "num", g ? fmt(g) : ""), el("strong", "definir", "Definir meta"));
         b.onclick = () => abrirMeta(c.id); l.append(b);
       });
       box.append(el("h3", "section-title", "Sem meta"), l);
@@ -637,7 +643,7 @@
     linhas.forEach(({ c, v, orc, s, share }) => {
       const res = nMeses && c.reserva;
       const it = el("div", "bar-item" + (s ? " meta-" + s.estado : res ? " reserva" : nMeses ? " sem-meta" : "")); it.style.setProperty("--h", c.hue);
-      const top = el("div", "bar-top"), nm = el("span", "name"); nm.append(el("span", "dot"), el("span", null, c.nome));
+      const top = el("div", "bar-top"), nm = el("span", "name"); nm.append(dotDe(c), el("span", null, c.nome));
       top.append(nm, el("span", "v", s ? `${fmt(v)} / ${fmt(orc)}` : fmt(v)));
       const pct = s ? s.pct : share;
       const tr = el("div", "track"), fl = el("div", "fill"); fl.style.width = Math.max(2, Math.min(100, pct * 100)) + "%"; tr.append(fl);
@@ -763,7 +769,7 @@
         const line = el("div", "cat-line rem"); line.style.setProperty("--h", c.hue);
         const b = el("button", "tem-meta", "Restaurar"); b.type = "button";
         b.onclick = () => salvarCats([{ ...c, excluido: false, alteradoEm: agoraIso(), pendente: true }]).then(() => { renderCatEdit(); toast(`${c.nome} restaurada`); });
-        line.append(el("span", "dot"), el("span", null, c.nome), b);
+        line.append(dotDe(c), el("span", null, c.nome), b);
         aviso.append(line);
       });
       box.append(aviso);
@@ -775,7 +781,10 @@
     const somaR = comMeta.filter((c) => c.reserva).reduce((a, c) => a + c.meta, 0);
     tot.append(el("span", "lbl", "Total das metas"), el("strong", null, fmt(comMeta.reduce((a, c) => a + c.meta, 0)) + " por mês"),
       el("small", null, `${comMeta.length} de ${ativas.length} categorias com meta`));
-    if (somaR > 0) tot.append(el("small", null, `Gasto do mês ${fmt(totalMetas - somaR)} · Reservas ${fmt(somaR)}`));
+    if (somaR > 0) {
+      tot.append(el("small", null, `Gasto do mês ${fmt(totalMetas - somaR)} · Reservas ${fmt(somaR)}`));
+      const leg = el("small", "legenda"); leg.append(el("span", "dot dot-reserva"), document.createTextNode(" = reserva")); tot.append(leg);
+    }
     segmentado("#ordCat", [{ id: "az", nome: "A–Z" }, { id: "valor", nome: "Maior meta" }], ordCat, (v) => {
       ordCat = v; try { localStorage.setItem("caderneta.ordCat", v); } catch {} renderCatEdit();
     });
@@ -799,7 +808,7 @@
         mb.append(el("span", null, fmt(c.meta)), el("small", null, (c.reserva ? "reserva · " : "") + `${p.toLocaleString("pt-BR", { maximumFractionDigits: p < 10 ? 1 : 0 })}% do total`));
       }
       mb.setAttribute("aria-label", `Meta e observação de ${c.nome}`); mb.onclick = () => abrirMeta(c.id);
-      line.append(el("span", "dot"), inp, mb, del); box.append(line);
+      line.append(dotDe(c), inp, mb, del); box.append(line);
     });
   }
   async function novaCategoria(nome) {
